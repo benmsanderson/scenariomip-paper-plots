@@ -49,9 +49,18 @@ jupyter lab
 | Stage | File | Description |
 |---|---|---|
 | Simulation | [scripts/run_fair_simulations.py](scripts/run_fair_simulations.py) | Runs FaIR v2.2 over 1750–2501 across the seven scenarios and saves the ensemble (emissions, CO₂e, temperature, CO₂ concentration, forcing) to `data/fair-outputs/fair_run.nc`. The full AR6 calibration is fetched from Zenodo on first run. |
-| Plotting | [notebooks/0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | Reads `fair_run.nc` and the CSVs in `data/` and renders every figure for the paper. Auto-invokes the simulation script if `fair_run.nc` is missing. |
+| Plotting (module) | [scripts/plotting.py](scripts/plotting.py) | Single source of truth for figure code. Exposes `load_data()` and `fig_*` functions used by both the notebook and the CLI. |
+| Plotting (CLI) | [scripts/make_plots.py](scripts/make_plots.py) | Renders every figure to `plots/` without Jupyter. Auto-invokes the simulation script if `fair_run.nc` is missing. |
+| Plotting (notebook) | [notebooks/0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | Interactive view of the same figures, for inspecting intermediates and tweaking styling. |
 
-Run the simulation manually with:
+### Render all figures (no Jupyter)
+
+```bash
+.venv/bin/python scripts/make_plots.py
+.venv/bin/python scripts/make_plots.py --out-dir /tmp/plots
+```
+
+### Run the FaIR simulation manually
 
 ```bash
 .venv/bin/python scripts/run_fair_simulations.py            # skip if output exists
@@ -60,8 +69,10 @@ Run the simulation manually with:
 ```
 
 The plotting notebook is regenerated from
-[scripts/build_plotting_notebook.py](scripts/build_plotting_notebook.py) —
-edit the builder rather than the `.ipynb` for substantive changes.
+[scripts/build_plotting_notebook.py](scripts/build_plotting_notebook.py).
+For substantive plot changes, edit `scripts/plotting.py` (shared by both
+the notebook and the CLI); the builder script is only for adding /
+removing notebook cells.
 
 ## Data
 
