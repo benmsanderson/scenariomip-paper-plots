@@ -12,7 +12,7 @@ This repository contains emissions scenario data and a Jupyter notebook that run
 
 ```bash
 git clone <repo-url>
-cd ScenarioMIP_final
+cd scenariomip-paper-plots
 ```
 
 ### 2. Create and activate a virtual environment
