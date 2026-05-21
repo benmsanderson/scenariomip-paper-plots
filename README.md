@@ -44,17 +44,24 @@ python -m ipykernel install --user --name scenariomip --display-name "ScenarioMI
 jupyter lab
 ```
 
-## Notebooks
+## Pipeline
 
-Run them in order — 0504 produces the FaIR output that 0505 consumes.
+| Stage | File | Description |
+|---|---|---|
+| Simulation | [scripts/run_fair_simulations.py](scripts/run_fair_simulations.py) | Runs FaIR v2.2 over 1750–2501 across the seven scenarios and saves the ensemble (emissions, CO₂e, temperature, CO₂ concentration, forcing) to `data/fair-outputs/fair_run.nc`. The full AR6 calibration is fetched from Zenodo on first run. |
+| Plotting | [notebooks/0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | Reads `fair_run.nc` and the CSVs in `data/` and renders every figure for the paper. Auto-invokes the simulation script if `fair_run.nc` is missing. |
 
-| Notebook | Description |
-|---|---|
-| [0504_extension_fair_simulations.ipynb](notebooks/0504_extension_fair_simulations.ipynb) | **Simulation.** Runs FaIR v2.2 over 1750–2501 across seven scenarios and saves the ensemble (emissions, CO₂e, temperature, CO₂ concentration, forcing) to `data/fair-outputs/fair_run.nc`. |
-| [0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | **Plotting.** Reads `fair_run.nc` and the CSVs in `data/` and renders every figure for the paper (CO₂ flux extensions, CO₂/GHG emissions, temperature & emissions, multi-panel diagnostics, temperature ECDFs). |
+Run the simulation manually with:
 
-The `scripts/build_*_notebook.py` files regenerate the notebooks from
-source — edit them rather than the `.ipynb` files for substantive changes.
+```bash
+.venv/bin/python scripts/run_fair_simulations.py            # skip if output exists
+.venv/bin/python scripts/run_fair_simulations.py --force    # always re-run
+.venv/bin/python scripts/run_fair_simulations.py --memory-limited  # 5-member test ensemble
+```
+
+The plotting notebook is regenerated from
+[scripts/build_plotting_notebook.py](scripts/build_plotting_notebook.py) —
+edit the builder rather than the `.ipynb` for substantive changes.
 
 ## Data
 

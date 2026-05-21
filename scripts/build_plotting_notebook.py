@@ -20,13 +20,14 @@ CELLS: list[tuple[str, str]] = [
         """\
 # ScenarioMIP — extension plots
 
-This notebook produces every figure for the ScenarioMIP description paper
-from two inputs:
+Produces every figure for the ScenarioMIP description paper from:
 
 * **CSV emissions** in `data/` — gross positive, AFOLU, energy & industry,
   plus CDR sub-components.
 * **FaIR ensemble outputs** at `data/fair-outputs/fair_run.nc` — produced
-  by `0504_extension_fair_simulations.ipynb`. Run 0504 first.
+  by `scripts/run_fair_simulations.py`. If the file is missing, the
+  load-data cell below invokes the script automatically (~5 min for the
+  full AR6 ensemble).
 
 Figures rendered:
 
@@ -44,6 +45,8 @@ Figures rendered:
     (
         "code",
         """\
+import subprocess
+import sys
 from pathlib import Path
 
 import matplotlib.patheffects as pe
@@ -60,8 +63,9 @@ import xarray as xr
     (
         "code",
         """\
-DATA_DIR = Path.cwd().parent / "data"
-PLOTS_DIR = Path.cwd().parent / "plots"
+REPO_ROOT = Path.cwd().parent
+DATA_DIR = REPO_ROOT / "data"
+PLOTS_DIR = REPO_ROOT / "plots"
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 raw_output = pd.read_csv(DATA_DIR / "continuous_emissions_timeseries_1750_2500.csv")
@@ -72,10 +76,13 @@ cdr_components = pd.read_csv(DATA_DIR / "cdr_components_future.csv")
 cdr_components = cdr_components.set_index(["model", "scenario", "variable"])
 cdr_components.columns = cdr_components.columns.astype(float)
 
+# FaIR ensemble outputs — run the simulation if the NetCDF is missing.
 fair_path = DATA_DIR / "fair-outputs" / "fair_run.nc"
 if not fair_path.exists():
-    raise FileNotFoundError(
-        f"{fair_path} not found. Run 0504_extension_fair_simulations.ipynb first."
+    print(f"{fair_path} not found -- running FaIR simulation (this takes a few minutes)...")
+    subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "run_fair_simulations.py")],
+        check=True,
     )
 fair = xr.open_dataset(fair_path)
 
