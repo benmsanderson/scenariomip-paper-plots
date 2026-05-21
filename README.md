@@ -20,7 +20,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Quickstart: render every figure (no Jupyter)
+## Quickstart: render every figure (without Jupyter)
 
 ```bash
 .venv/bin/python scripts/make_plots.py
