@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Regional data files (not used in this repo - see Zenodo archive)
+data/history_regional.csv
+data/scenarios_regional.csv
+
+# macOS
+.DS_Store
