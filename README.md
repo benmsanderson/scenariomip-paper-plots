@@ -46,10 +46,15 @@ jupyter lab
 
 ## Notebooks
 
+Run them in order — 0504 produces the FaIR output that 0505 consumes.
+
 | Notebook | Description |
 |---|---|
-| [0504_extension_fair_simulations.ipynb](notebooks/0504_extension_fair_simulations.ipynb) | Runs FaIR v2.2 with extended emissions scenarios and produces temperature and concentration projections |
-| [0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | Reproduces the comprehensive CO₂ flux figure (annual + cumulative, gross positive, AFOLU, CDR breakdown) for the seven scenarios |
+| [0504_extension_fair_simulations.ipynb](notebooks/0504_extension_fair_simulations.ipynb) | **Simulation.** Runs FaIR v2.2 over 1750–2501 across seven scenarios and saves the ensemble (emissions, CO₂e, temperature, CO₂ concentration, forcing) to `data/fair-outputs/fair_run.nc`. |
+| [0505_extensions_plotting.ipynb](notebooks/0505_extensions_plotting.ipynb) | **Plotting.** Reads `fair_run.nc` and the CSVs in `data/` and renders every figure for the paper (CO₂ flux extensions, CO₂/GHG emissions, temperature & emissions, multi-panel diagnostics, temperature ECDFs). |
+
+The `scripts/build_*_notebook.py` files regenerate the notebooks from
+source — edit them rather than the `.ipynb` files for substantive changes.
 
 ## Data
 

@@ -18,26 +18,23 @@ CELLS: list[tuple[str, str]] = [
     (
         "markdown",
         """\
-# ScenarioMIP — CO₂ flux extensions
+# ScenarioMIP — extension plots
 
-This notebook reproduces the comprehensive CO₂ flux figure from the ScenarioMIP
-description paper for seven scenarios (VL through HL), spanning 1750–2500.
+This notebook produces every figure for the ScenarioMIP description paper
+from two inputs:
 
-For each scenario it plots two panels:
+* **CSV emissions** in `data/` — gross positive, AFOLU, energy & industry,
+  plus CDR sub-components.
+* **FaIR ensemble outputs** at `data/fair-outputs/fair_run.nc` — produced
+  by `0504_extension_fair_simulations.ipynb`. Run 0504 first.
 
-* **Annual fluxes** — gross positive CO₂ from energy & industry, AFOLU,
-  and a breakdown of negative CDR components (BECCS, DACCS, ocean CDR,
-  enhanced weathering).
-* **Cumulative fluxes** — the same components integrated over time, with
-  reference lines for proven/probable fossil reserves and the cumulative
-  CDR limit.
+Figures rendered:
 
-Inputs are two CSVs in `data/`:
-
-* `continuous_emissions_timeseries_1750_2500.csv` — full 1750–2500 series at
-  the World region (gross positive, AFOLU, energy & industry).
-* `cdr_components_future.csv` — future-only (2023–2500) CDR sub-components,
-  pre-summed across regions.
+1. CO₂ flux extensions (annual + cumulative, with CDR breakdown).
+2. Pre-run CO₂ and GHG emissions summaries.
+3. Temperature & emissions (GHG with uncertainty band + temperature 2000–2150).
+4. Multi-panel diagnostics (8 panels: emissions, forcing, concentration, temperature).
+5. Temperature ECDFs at 2100, 2300, and peak warming.
 """,
     ),
     (
@@ -49,9 +46,11 @@ Inputs are two CSVs in `data/`:
         """\
 from pathlib import Path
 
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import xarray as xr
 """,
     ),
     (
@@ -62,6 +61,8 @@ import pandas as pd
         "code",
         """\
 DATA_DIR = Path.cwd().parent / "data"
+PLOTS_DIR = Path.cwd().parent / "plots"
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 raw_output = pd.read_csv(DATA_DIR / "continuous_emissions_timeseries_1750_2500.csv")
 raw_output = raw_output.set_index(["model", "scenario", "region", "workflow", "variable", "unit"])
@@ -71,22 +72,32 @@ cdr_components = pd.read_csv(DATA_DIR / "cdr_components_future.csv")
 cdr_components = cdr_components.set_index(["model", "scenario", "variable"])
 cdr_components.columns = cdr_components.columns.astype(float)
 
-print(f"raw_output: {raw_output.shape}, years {raw_output.columns.min():.0f}-{raw_output.columns.max():.0f}")
+fair_path = DATA_DIR / "fair-outputs" / "fair_run.nc"
+if not fair_path.exists():
+    raise FileNotFoundError(
+        f"{fair_path} not found. Run 0504_extension_fair_simulations.ipynb first."
+    )
+fair = xr.open_dataset(fair_path)
+
+print(f"raw_output:     {raw_output.shape}, years {raw_output.columns.min():.0f}-{raw_output.columns.max():.0f}")
 print(f"cdr_components: {cdr_components.shape}, years {cdr_components.columns.min():.0f}-{cdr_components.columns.max():.0f}")
+print(f"fair:           {dict(fair.sizes)}")
 """,
     ),
     (
         "markdown",
-        "## Constants and scenario metadata",
+        "## Scenario metadata and colors",
     ),
     (
         "code",
         """\
+# CO2-flux figure constants (reserves are Gt CO2 cumulative ceilings).
 BASELINE_YEAR = 2100
-CDR_LIMIT = -1460          # Gt CO2 -- cumulative CDR ceiling
-PROVED_FOSSIL_RESERVES = 2032 + 2400    # Gt CO2
-PROBABLE_FOSSIL_RESERVES = 8036 + 2400  # Gt CO2
+CDR_LIMIT = -1460
+PROVED_FOSSIL_RESERVES = 2032 + 2400
+PROBABLE_FOSSIL_RESERVES = 8036 + 2400
 
+# Long IAM-scenario names in the raw_output CSV mapped to short codes.
 scenario_model_match = {
     "VL": ["SSP1 - Very Low Emissions", "REMIND-MAgPIE 3.5-4.11", "tab:blue"],
     "LN": ["SSP2 - Low Overshoot_a", "AIM 3.0", "tab:cyan"],
@@ -98,6 +109,7 @@ scenario_model_match = {
 }
 scenario_to_code = {info[0]: code for code, info in scenario_model_match.items()}
 
+# Component colors for the CO2-flux figure.
 COLORS = {
     "Gross_Positive":      "#8B4513",
     "BECCS":               "#BEDB3C",
@@ -106,11 +118,23 @@ COLORS = {
     "Enhanced_Weathering": "#A6A6A6",
     "AFOLU":               "#51E390",
 }
+
+# Per-scenario line colors (used in all FaIR-output plots).
+snames = ["VL", "LN", "L", "ML", "M", "H", "HL"]
+scenario_colors = {
+    "HL": "#E744F6",
+    "H":  "#a41212",
+    "M":  "#fc7b03",
+    "ML": "#dec820",
+    "L":  "#20A359",
+    "LN": "#22e5db",
+    "VL": "#16188F",
+}
 """,
     ),
     (
         "markdown",
-        "## Plot helpers",
+        "## CO₂ flux figure — plot helpers",
     ),
     (
         "code",
@@ -252,16 +276,317 @@ def plot_comprehensive_co2_analysis_with_history():
     ),
     (
         "markdown",
-        "## Render",
+        "## Figure 1 — CO₂ flux extensions",
     ),
     (
         "code",
         """\
 fig = plot_comprehensive_co2_analysis_with_history()
-out_path = Path.cwd().parent / "plots" / "co2_extensions_with_history.png"
-out_path.parent.mkdir(parents=True, exist_ok=True)
+out_path = PLOTS_DIR / "co2_extensions_with_history.png"
 fig.savefig(out_path, dpi=150, bbox_inches="tight")
 print(f"Saved {out_path}")
+plt.show()
+""",
+    ),
+    (
+        "markdown",
+        """\
+## FaIR-output figures — shared accessors
+
+Convenience helpers so the FaIR plots read like the original notebook.
+""",
+    ),
+    (
+        "code",
+        """\
+timepoints = fair["emissions"].timepoints.values
+timebounds = fair["temperature"].timebounds.values
+scenarios = fair["temperature"].scenario.values
+
+emissions = fair["emissions"]                  # (timepoints, scenario, specie)
+co2e = fair["co2e"]                            # (timepoints, scenario)  -- tonnes CO2e / yr
+temperature = fair["temperature"]              # (timebounds, scenario, config)  -- layer 0
+co2_concentration = fair["co2_concentration"]  # (timebounds, scenario, config)
+forcing_sum = fair["forcing_sum"]              # (timebounds, scenario, config)
+
+# Anomaly relative to 1850-1900 mean.
+T_BASELINE = temperature.sel(timebounds=np.arange(1850, 1902)).mean(dim="timebounds")
+temperature_anom = temperature - T_BASELINE
+""",
+    ),
+    (
+        "markdown",
+        "## Figure 2 — CO₂ emissions (annual + cumulative)",
+    ),
+    (
+        "code",
+        """\
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 5))
+for scenario in scenarios:
+    co2_total = emissions.sel(scenario=scenario, specie="CO2 FFI") + emissions.sel(scenario=scenario, specie="CO2 AFOLU")
+    ax[0].plot(timepoints, co2_total, label=scenario, color=scenario_colors[scenario])
+    ax[1].plot(timepoints, co2_total.cumsum(), label=scenario, color=scenario_colors[scenario])
+ax[0].set_ylabel("CO$_2$ emissions, GtCO$_2$ yr$^{-1}$")
+ax[1].set_ylabel("Cumulative CO$_2$ emissions, GtCO$_2$")
+for a in ax:
+    a.axhline(ls=":", color="k", lw=0.5)
+    a.legend()
+    a.grid()
+fig.savefig(PLOTS_DIR / "co2_emissions.png")
+plt.show()
+""",
+    ),
+    (
+        "markdown",
+        "## Figure 3 — CO₂ and total GHG emissions (CO₂e)",
+    ),
+    (
+        "code",
+        """\
+fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+for scenario in scenarios:
+    co2_total = emissions.sel(scenario=scenario, specie="CO2 FFI") + emissions.sel(scenario=scenario, specie="CO2 AFOLU")
+    ax[0].plot(timepoints, co2_total, label=scenario, color=scenario_colors[scenario])
+    ax[1].plot(timepoints, co2e.sel(scenario=scenario) / 1e6, label=scenario, color=scenario_colors[scenario])
+
+ax[0].set_ylabel("CO$_2$ emissions, GtCO$_2$ yr$^{-1}$")
+ax[0].set_xlim(2015, 2300)
+ax[0].set_ylim(-40, 100)
+ax[0].legend()
+
+ax[1].set_ylabel("GHG emissions, GtCO$_2$eq yr$^{-1}$")
+ax[1].set_xlim(2015, 2300)
+ax[1].set_ylim(-50, 100)
+
+for a in ax:
+    a.axhline(ls=":", color="k", lw=0.5)
+    a.grid()
+fig.savefig(PLOTS_DIR / "ghg_emissions.png")
+plt.show()
+""",
+    ),
+    (
+        "markdown",
+        """\
+## Figure 4 — Temperature & emissions (2000–2150)
+
+Two panels: GHG emissions (CO₂e) with an uncertainty band derived from
+the scenario spread, and warming relative to 1850–1900 (33rd–66th
+percentile across the ensemble).
+""",
+    ),
+    (
+        "code",
+        """\
+fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+# Uncertainty band scaled by the high-vs-low scenario gap.
+unc = np.tanh((co2e.sel(scenario=scenarios[0]) - co2e.sel(scenario=scenarios[-2])) / 1e6 / 10) * 8
+
+for scenario in scenarios:
+    ax[0].fill_between(
+        timebounds[:351],
+        co2e.sel(scenario=scenario)[:351] / 1e6 - unc[:351],
+        co2e.sel(scenario=scenario)[:351] / 1e6 + unc[:351],
+        color=scenario_colors[scenario], lw=0, alpha=0.3,
+    )
+    ax[0].fill_between(
+        timepoints[350:],
+        co2e.sel(scenario=scenario)[350:] / 1e6 - unc[350:],
+        co2e.sel(scenario=scenario)[350:] / 1e6 + unc[350:],
+        color=scenario_colors[scenario], hatch="XXX", lw=0, alpha=0.1,
+    )
+    ax[0].plot(timepoints[:275], co2e.sel(scenario=scenario)[:275] / 1e6, color="k")
+
+ax[0].text(2030, -39, "IAM generated \\nscenarios \\n(2025-2100)")
+ax[0].text(2105, -39, "Priority extension\\nperiod \\n(2101-2150)")
+ax[0].set_ylabel("GHG emissions, GtCO$_2$eq yr$^{-1}$")
+ax[0].axhline(ls=":", color="k", lw=0.5)
+ax[0].set_xlim(2000, 2150)
+ax[0].set_ylim(-50, 100)
+ax[0].grid()
+ax[0].set_title("(a)")
+
+for scenario in scenarios:
+    ta = temperature_anom.sel(scenario=scenario)
+    ax[1].fill_between(
+        timebounds,
+        ta.quantile(0.33, dim="config"),
+        ta.quantile(0.66, dim="config"),
+        color=scenario_colors[scenario], lw=0, alpha=0.3, label=scenario,
+    )
+# Historical (black band) from the last scenario in the loop -- temperature is the
+# same for all scenarios over the historical period.
+hist = temperature_anom.sel(scenario=scenarios[-1])
+ax[1].fill_between(
+    timebounds[:274],
+    hist[:274].quantile(0.33, dim="config"),
+    hist[:274].quantile(0.66, dim="config"),
+    color="k", alpha=0.5,
+)
+ax[1].axhline(0, ls=":", color="k", lw=0.5)
+ax[1].set_ylabel("Temperature above 1850-1900, K")
+ax[1].set_ylim(0, 5)
+ax[1].set_xlim(2000, 2150)
+ax[1].grid()
+ax[1].legend()
+ax[1].set_title("(b)")
+
+fig.savefig(PLOTS_DIR / "temperature_emis.png", dpi=600, bbox_inches="tight")
+fig.savefig(PLOTS_DIR / "temperature_emis.pdf", format="pdf", bbox_inches="tight")
+plt.show()
+""",
+    ),
+    (
+        "markdown",
+        """\
+## Figure 5 — Multi-panel diagnostics
+
+Eight panels: CO₂ emissions (annual & cumulative), CH₄, sulfur, GHG
+totals, effective radiative forcing, CO₂ concentration, and temperature.
+Black overlay marks the historical period (1750–2022).
+""",
+    ),
+    (
+        "code",
+        """\
+fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(14, 16))
+ax = ax.flatten()
+hist_slice = slice(0, 273)
+
+# Panel 0: annual CO2
+for scenario in scenarios:
+    co2_total = emissions.sel(scenario=scenario, specie="CO2 FFI") + emissions.sel(scenario=scenario, specie="CO2 AFOLU")
+    ax[0].plot(timepoints, co2_total, label=scenario, color=scenario_colors[scenario])
+ax[0].plot(timepoints[hist_slice], co2_total[hist_slice], color="k")
+ax[0].set_ylabel("CO$_2$ emissions, GtCO$_2$ yr$^{-1}$")
+ax[0].legend()
+
+# Panel 1: cumulative CO2
+for scenario in scenarios:
+    co2_total = emissions.sel(scenario=scenario, specie="CO2 FFI") + emissions.sel(scenario=scenario, specie="CO2 AFOLU")
+    ax[1].plot(timepoints, co2_total.cumsum(), color=scenario_colors[scenario])
+ax[1].plot(timepoints[hist_slice], co2_total.cumsum()[hist_slice], color="k")
+ax[1].set_ylabel("Cumulative CO$_2$ emissions, GtCO$_2$")
+
+# Panel 2: CH4
+for scenario in scenarios:
+    ax[2].plot(timepoints, emissions.sel(scenario=scenario, specie="CH4"), color=scenario_colors[scenario])
+ax[2].plot(timepoints[hist_slice], emissions.sel(scenario=scenarios[-1], specie="CH4")[hist_slice], color="k")
+ax[2].set_ylabel("CH$_4$ emissions, MtCH$_4$ yr$^{-1}$")
+
+# Panel 3: SO2
+for scenario in scenarios:
+    ax[3].plot(timepoints, emissions.sel(scenario=scenario, specie="Sulfur"), color=scenario_colors[scenario])
+ax[3].plot(timepoints[hist_slice], emissions.sel(scenario=scenarios[-1], specie="Sulfur")[hist_slice], color="k")
+ax[3].set_ylabel("SO$_2$ emissions, MtS yr$^{-1}$")
+
+# Panel 4: GHG (CO2e)
+for scenario in scenarios:
+    ax[4].plot(timepoints, co2e.sel(scenario=scenario) / 1e6, color=scenario_colors[scenario])
+ax[4].plot(timepoints[hist_slice], co2e.sel(scenario=scenarios[-1])[hist_slice] / 1e6, color="k")
+ax[4].set_ylabel("GHG emissions, GtCO$_2$eq yr$^{-1}$")
+
+# Panel 5: effective radiative forcing
+for scenario in scenarios:
+    fs = forcing_sum.sel(scenario=scenario)
+    ax[5].fill_between(
+        timebounds, fs.quantile(0.05, dim="config"), fs.quantile(0.95, dim="config"),
+        color=scenario_colors[scenario], lw=0, alpha=0.1,
+    )
+    ax[5].plot(
+        timebounds[274:], fs.median(dim="config")[274:],
+        path_effects=[pe.Stroke(linewidth=4, foreground="w", alpha=0.8), pe.Normal()],
+        color=scenario_colors[scenario],
+    )
+    ax[5].plot(timebounds, fs.median(dim="config"), color=scenario_colors[scenario])
+ax[5].plot(timebounds[hist_slice], fs.median(dim="config")[hist_slice], color="k")
+ax[5].set_ylabel("Effective radiative forcing, W m$^{-2}$")
+
+# Panel 6: CO2 concentration
+for scenario in scenarios:
+    co2c = co2_concentration.sel(scenario=scenario)
+    ax[6].fill_between(
+        timebounds, co2c.quantile(0.05, dim="config"), co2c.quantile(0.95, dim="config"),
+        color=scenario_colors[scenario], lw=0, alpha=0.1,
+    )
+    ax[6].plot(
+        timebounds[274:], co2c.median(dim="config")[274:],
+        path_effects=[pe.Stroke(linewidth=5, foreground="w", alpha=0.8), pe.Normal()],
+        color=scenario_colors[scenario],
+    )
+    ax[6].plot(timebounds, co2c.median(dim="config"), color=scenario_colors[scenario])
+ax[6].plot(timebounds[hist_slice], co2c.median(dim="config")[hist_slice], color="k")
+ax[6].axhline(0, ls=":", color="k", lw=0.5)
+ax[6].set_ylabel("Atmospheric CO$_2$ concentration, ppm")
+ax[6].set_ylim(0, 1500)
+
+# Panel 7: temperature anomaly (vs 1850-1900)
+for scenario in scenarios:
+    ta = temperature_anom.sel(scenario=scenario)
+    ax[7].fill_between(
+        timebounds, ta.quantile(0.05, dim="config"), ta.quantile(0.95, dim="config"),
+        color=scenario_colors[scenario], lw=0, alpha=0.1,
+    )
+    ax[7].plot(
+        timebounds[274:], ta.median(dim="config")[274:],
+        path_effects=[pe.Stroke(linewidth=4, foreground="w", alpha=0.8), pe.Normal()],
+        color=scenario_colors[scenario],
+    )
+    ax[7].plot(timebounds, ta.median(dim="config"), label=scenario, color=scenario_colors[scenario])
+ax[7].plot(timebounds[hist_slice], ta.median(dim="config")[hist_slice], color="k")
+ax[7].axhline(0, ls=":", color="k", lw=0.5)
+ax[7].set_ylabel("Temperature above 1850-1900, K")
+ax[7].set_ylim(-1, 8)
+ax[7].legend()
+
+for a in ax:
+    a.axhline(ls=":", color="k", lw=0.5)
+    a.grid()
+
+fig.savefig(PLOTS_DIR / "extensions.png", dpi=600, bbox_inches="tight")
+fig.savefig(PLOTS_DIR / "extensions.pdf", format="pdf", bbox_inches="tight")
+plt.show()
+""",
+    ),
+    (
+        "markdown",
+        """\
+## Figure 6 — Temperature ECDFs
+
+Cumulative probability across the ensemble at 2100, 2300, and peak
+warming (relative to year 1850).
+""",
+    ),
+    (
+        "code",
+        """\
+fig, ax = plt.subplots(3, 1, figsize=(12, 8))
+ax = ax.flatten()
+
+T_2100 = temperature.sel(timebounds=2100) - temperature.sel(timebounds=1850)
+T_2300 = temperature.sel(timebounds=2300) - temperature.sel(timebounds=1850)
+T_peak = temperature.max(dim="timebounds") - temperature.sel(timebounds=1850)
+
+panels = [
+    (T_2100, "Temperature anomaly in 2100 relative to 1850, K"),
+    (T_2300, "Temperature anomaly in 2300 relative to 1850, K"),
+    (T_peak, "Maximum temperature anomaly relative to 1850, K"),
+]
+
+for a, (T, title) in zip(ax, panels):
+    for scenario in scenarios:
+        a.ecdf(T.sel(scenario=scenario), color=scenario_colors[scenario], label=scenario)
+    a.set_title(title)
+    a.set_xlabel("K")
+    a.set_ylabel("Cumulative probability")
+    a.set_yticks([0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9])
+    a.set_xticks(np.array([-0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]) * 2)
+    a.set_xlim([-1, 10])
+    a.legend(loc="upper right")
+    a.grid()
+
+plt.tight_layout()
 plt.show()
 """,
     ),

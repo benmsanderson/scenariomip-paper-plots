@@ -3,5 +3,7 @@ matplotlib
 numpy
 pandas
 pooch
+xarray
+netcdf4
 ipykernel
 jupyterlab
