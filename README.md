@@ -11,7 +11,7 @@ This repository contains emissions scenario data and a Jupyter notebook that run
 ### 1. Clone the repository
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/benmsanderson/scenariomip-paper-plots.git
 cd scenariomip-paper-plots
 ```
 
