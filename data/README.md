@@ -8,9 +8,8 @@ All data files are version-controlled directly in this repository (no Git LFS). 
 
 | File | Size | Description |
 |---|---|---|
-| `history.csv` | 192 KB | Historical global emissions |
-| `scenarios_complete_global.csv` | 576 KB | Complete global scenario data |
-| `continuous_emissions_timeseries_1750_2500.csv` | 5.1 MB | Continuous emissions timeseries 1750-2500 |
+| `history.csv` | 192 KB | Historical global emissions, with inventory provenance preserved in the `model` column (e.g. `GCB-extended`, `WMO 2022 AGAGE inversions_cmip-inverse-extended`) |
+| `continuous_emissions_timeseries_1750_2500.csv` | 5.1 MB | Continuous emissions timeseries 1750-2500, history replicated per IAM scenario |
 | `cdr_components_future.csv` | ~150 KB | Future-only CDR sub-component series (BECCS, DACCS, ocean, enhanced weathering), pre-summed to global per (model, scenario, variable). Regenerate via `scripts/export_cdr_components.py`. |
 | `fair-inputs/emissions_1750-2500.csv` | 4.1 MB | FaIR model emissions input |
 | `fair-inputs/species_configs_properties_1.4.1.csv` | 12 KB | FaIR species configuration |
