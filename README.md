@@ -1,6 +1,10 @@
 # ScenarioMIP Extension: FaIR Climate Simulations
 
-This repository contains emissions scenario data and a Jupyter notebook that runs the [FaIR v2.2](https://github.com/OMS-NetZero/FAIR) climate model over extended timelines (1750-2501) across seven ScenarioMIP-aligned scenarios (VL through HL).
+This repository reproduces the plots for the published ScenarioMIP CMIP7 description paper:
+
+Van Vuuren, D. P., O'Neill, B. C., Tebaldi, C., Sanderson, B. M., Chini, L. P., Friedlingstein, P., Hasegawa, T., Riahi, K., Govindasamy, B., Bauer, N., Eyring, V., Fall, C. M. N., Frieler, K., Gidden, M. J., Gohar, L. K., Högner, A., Jones, A. D., Kikstra, J., King, A., Knutti, R., Kriegler, E., Lawrence, P., Lennard, C., Lowe, J., Mathison, C., Mehmood, S., Nicholls, Z., Prado, L. F., Zhang, Q., Rose, S. K., Ruane, A. C., Sandstad, M., Schleussner, C.-F., Seferian, R., Sillmann, J., Smith, C., Sörensson, A. A., Panickal, S., Tachiiri, K., Vaughan, N., Vishwanathan, S. S., Yokohata, T., Zecchetto, M., and Ziehn, T.: The Scenario Model Intercomparison Project for CMIP7 (ScenarioMIP-CMIP7), Geosci. Model Dev., 19, 2627–2656, https://doi.org/10.5194/gmd-19-2627-2026, 2026.
+
+The repo contains emissions scenario data and a Jupyter notebook that runs the [FaIR v2.2](https://github.com/OMS-NetZero/FAIR) climate model over extended timelines (1750-2501) across seven ScenarioMIP-aligned scenarios (VL through HL).
 
 ## Requirements
 
